@@ -111,7 +111,7 @@ const step = (state, output) => {
     }
     let fn = scope[currIns];
     if (fn) {
-        state.ins = {list:fn, parent:state.ins};
+        state.ins = {list:fn.slice(), parent:state.ins};
         return;
     }
     if (currIns.charAt(0) === "'") {
@@ -127,7 +127,6 @@ let currUser = 0;
 
 const rmProc = (id) => {
     procs.splice(id, 1);
-    conns[id].close();
     conns.splice(id, 1);
 }
 
@@ -139,10 +138,12 @@ const addProc = (conn, proc) => {
 const timeshare = () => {
     if (procs.length === 0) return;
     if (!conns[currUser].connected) {
+        conns[currUser].close();
         rmProc(currUser);
         return;
     }
     if (procs[currUser].ins === null) {
+        conns[currUser].send("halt");
         rmProc(currUser);
         return;
     }
@@ -150,11 +151,13 @@ const timeshare = () => {
     try {
         step(procs[currUser], output);
         if (output.buf !== "") {
+            console.log("sent ", output.buf);
             conns[currUser].sendUTF(output.buf);
         }
     } catch (err) {
         console.log(err);
         conns[currUser].send(err);
+        conns[currUser].close();
         rmProc(currUser);
     }
     currUser += 1;

@@ -10,6 +10,8 @@ client.on('connectFailed', function(error) {
 client.on('connect', function(connection) {
     console.log('wsc connected');
 
+    working = false;
+
     connection.on('error', function(error) {
         console.log("connection error: " + error.toString());
     });
@@ -17,20 +19,27 @@ client.on('connect', function(connection) {
         console.log('no longer enjoying soviet languages');
     });
     connection.on('message', function(message) {
-        if (message.type === "utf8") {
-            console.log(message.utf8Data);
+        if (message.utf8Data === "halt") {
+            working = false;
+        } else {
+            console.log(message.utf8Data.slice(0, -1));
         }
     });
 
     const repl = () => {
+        if (working) {
+            setTimeout(repl, 10);
+            return;
+        }
         let msg = prompt("sov>");
         if (msg === ":q") {
             console.log("press ctrl+c to exit");
             connection.close();
             while (true) continue;
         }
+        working = true;
         connection.send(msg);
-        setImmediate(repl);
+        setTimeout(repl, 10);
     }
 
     const ping = () => {
