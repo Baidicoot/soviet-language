@@ -1,4 +1,6 @@
-const fs = require('fs');
+const fs = require("fs");
+const WebSocketServer = require("websocket").server;
+const http = require("http");
 
 let scope = null;
 
@@ -15,7 +17,7 @@ const saveDefns = () => {
     if (scope) {
         fs.writeFileSync("scope.json", JSON.stringify(scope));
     } else {
-        console.log('tried to save an empty scope')
+        console.log("tried to save an empty scope")
     }
 }
 
@@ -27,7 +29,7 @@ const builtin = {
         }
         let name = state.stack.pop();
         if (builtin[name]) {
-            throw 'lyricly is annoying-ly'
+            throw "lyricly is annoying-ly"
             return;
         }
         scope[name] = defn;
@@ -70,18 +72,18 @@ const builtin = {
             }
             state.stack.push(ls);
         } else {
-            throw 'typeerror'
+            throw "typeerror"
         }
     },
     "conc": (state, _) => {
         let a = state.stack.pop();
         if (!a) {
-            throw 'undefined'
+            throw "undefined"
         }
         if (a.join) {
             state.stack.push(a.join(""));
         } else {
-            throw 'typeerror'
+            throw "typeerror"
         }
     },
     "if": (state, _) => {
@@ -111,7 +113,7 @@ const builtin = {
         if (typeof a === "object") {
             state.ins = a;
         } else {
-            throw 'typeerror'
+            throw "typeerror"
         }
     },
     "scope": (state, _) => {
@@ -123,7 +125,7 @@ const builtin = {
         if (typeof obj === "object") {
             state.stack.push(obj[prop]);
         } else {
-            throw 'typeerror'
+            throw "typeerror"
         }
     },
     "set": (state, _) => {
@@ -134,43 +136,43 @@ const builtin = {
             obj[prop] = val;
             state.stack.push(obj);
         } else {
-            throw 'typeerror'
+            throw "typeerror"
         }
     },
     "cons": (state, _) => {
         let obj = cln(state.stack.pop());
         let v = stack.state.pop();
         if (!obj) {
-            throw 'undefined'
+            throw "undefined"
         }
         if (obj.push) {
             obj.push(v);
             state.stack.push(obj);
         } else {
-            throw 'typeerror'
+            throw "typeerror"
         }
     },
     "head": (state, _) => {
         let obj = cln(state.stack.pop());
         if (!obj) {
-            throw 'undefined'
+            throw "undefined"
         }
         if (obj.pop) {
             state.stack.push(obj.pop());
         } else {
-            throw 'typeerror'
+            throw "typeerror"
         }
     },
     "tail": (state, _) => {
         let obj = cln(state.stack.pop());
         if (!obj) {
-            throw 'undefined'
+            throw "undefined"
         }
         if (obj.pop) {
             obj.pop();
             state.stack.push(obj);
         } else {
-            throw 'typeerror'
+            throw "typeerror"
         }
     },
     "parse": (state, _) => {
@@ -178,7 +180,7 @@ const builtin = {
         if (typeof obj === "string") {
             state.stack.push(JSON.parse(obj));
         } else {
-            throw 'typeerror'
+            throw "typeerror"
         }
     },
     "stringify": (state, _) => {
@@ -205,11 +207,11 @@ const step = (state, output) => {
         state.ins = {list:fn.slice(), parent:state.ins};
         return;
     }
-    if (currIns.charAt(0) === "'") {
+    if (currIns.charAt(0) === '"') {
         state.stack.push(currIns.slice(1));
         return;
     }
-    throw 'reference error'
+    throw "reference error"
 }
 
 let procs = [];
@@ -257,58 +259,27 @@ const timeshare = () => {
     }
 }
 
-/* OLD, DEPRICATED EVAL
-
-const doIns = (stack, ins, output) => {
-    let op = builtin[ins];
-    if (op) {
-        op(stack, output);
-    } else {
-        let fn = scope[ins];
-        if (fn) {
-            doSeq(stack, fn, output);
-        } else {
-            if (ins.charAt(0) === "'") {
-                stack.push(ins.slice(1));
-            } else {
-                throw 'reference error'
-            }
-        }
-    }
-}
-
-const doSeq = (stack, ins, output) => {
-    for (let i = 0; i < ins.length; i++) {
-        doIns(stack, ins[i], output);
-    }
-}
-
-*/
-
 /* SERVER */
-
-const WebSocketServer = require('websocket').server;
-const http = require('http');
  
 let server = http.createServer(function(request, response) {
-    console.log((new Date()) + ' Received request for ' + request.url);
+    console.log((new Date()) + " Received request for " + request.url);
     response.writeHead(404);
     response.end();
 });
 server.listen(25565, function() {
-    console.log('server is listening on port 25565');
+    console.log("server is listening on port 25565");
 });
  
 wsServer = new WebSocketServer({
     httpServer: server,
     autoAcceptConnections: false
 });
-wsServer.on('request', function(request) {
-    let connection = request.accept('echo-protocol', request.origin);
-    console.log('connection accepted');
+wsServer.on("request", function(request) {
+    let connection = request.accept("echo-protocol", request.origin);
+    console.log("connection accepted");
 
-    connection.on('message', function(message) {
-        console.log('received:', message.utf8Data, 'from:', connection.remoteAddress);
+    connection.on("message", function(message) {
+        console.log("received:", message.utf8Data, "from:", connection.remoteAddress);
 
         let ins = message.utf8Data.split(" ");
         let state = {stack:[], ins:{list:ins, parent:null}};
@@ -317,8 +288,8 @@ wsServer.on('request', function(request) {
         addProc(connection, state);
     });
 
-    connection.on('close', function(reasonCode, description) {
-        console.log('peer ' + connection.remoteAddress + ' disconnected');
+    connection.on("close", function(reasonCode, description) {
+        console.log("peer " + connection.remoteAddress + " disconnected");
     });
 
     const ping = () => {

@@ -1,24 +1,24 @@
-const wsc = require('websocket').client;
-const prompt = require('prompt-sync')();
+const wsc = require("websocket").client;
+const prompt = require("prompt-sync")();
 
 let client = new wsc();
 
-client.on('connectFailed', function(error) {
-    console.log('connection failed: ' + error.toString());
+client.on("connectFailed", function(error) {
+    console.log("connection failed: " + error.toString());
 });
 
-client.on('connect', function(connection) {
-    console.log('wsc connected');
+client.on("connect", function(connection) {
+    console.log("wsc connected");
 
     working = false;
 
-    connection.on('error', function(error) {
+    connection.on("error", function(error) {
         console.log("connection error: " + error.toString());
     });
-    connection.on('close', function() {
-        console.log('no longer enjoying soviet languages');
+    connection.on("close", function() {
+        console.log("no longer enjoying soviet languages");
     });
-    connection.on('message', function(message) {
+    connection.on("message", function(message) {
         if (message.utf8Data === "halt") {
             working = false;
         } else {

@@ -1,0 +1,14 @@
+{
+  "name": "soviet-language",
+  "version": "1.0.0",
+  "description": "forth, but all functions are global to the entire internet",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Baidicoot/soviet-language.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "prompt-sync": "^4.2.0",
+    "websocket": "^1.0.31"
+  }
+}
