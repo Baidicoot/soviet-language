@@ -42,3 +42,5 @@ The builtin words other than `:` and `;` are:
 - `cons` - x:xs
 - `head` - first item in list
 - `tail` - last items in list
+- `parse` - parse json
+- `stringify` - stringify object

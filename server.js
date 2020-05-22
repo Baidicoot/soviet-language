@@ -148,7 +148,19 @@ const builtin = {
         } else {
             throw 'typeerror'
         }
-    }
+    },
+    "parse": (state, _) => {
+        let obj = state.stack.pop();
+        if (typeof obj === "string") {
+            state.stack.push(JSON.parse(obj));
+        } else {
+            throw 'typeerror'
+        }
+    },
+    "stringify": (state, _) => {
+        let obj = state.stack.pop();
+        state.stack.push(JSON.stringify(obj));
+    },
 }
 
 const cln = (obj) => JSON.parse(JSON.stringify(obj));
