@@ -20,39 +20,150 @@ const saveDefns = () => {
 }
 
 const builtin = {
-    ";": (stack, _) => {
+    ";": (state, _) => {
         let defn = [];
-        for (let elem = stack.pop(); elem !== "|"; elem = stack.pop()) {
+        for (let elem = state.stack.pop(); elem !== "|"; elem = state.stack.pop()) {
             defn.unshift(elem);
         }
-        let name = stack.pop();
+        let name = state.stack.pop();
         scope[name] = defn;
     },
-    ":": (stack, _) => {
-        stack.push("|");
+    ":": (state, _) => {
+        state.stack.push("|");
     },
-    "call": (stack, output) => {
-        let ins = stack.pop();
-        doIns(stack, ins, output);
+    "call": (state, output) => {
+        let sym = state.stack.pop();
+        state.ins.list.unshift(sym);
     },
-    "swap": (stack, _) => {
-        let a = stack.pop();
-        let b = stack.pop();
-        stack.push(a);
-        stack.push(b);
+    "swap": (state, _) => {
+        let a = state.stack.pop();
+        let b = state.stack.pop();
+        state.stack.push(a);
+        state.stack.push(b);
     },
-    "dup": (stack, _) => {
-        let a = stack.pop();
-        stack.push(a);
-        stack.push(a);
+    "dup": (state, _) => {
+        let a = state.stack.pop();
+        state.stack.push(a);
+        state.stack.push(a);
     },
-    "del": (stack, _) => {
-        stack.pop();
+    "del": (state, _) => {
+        state.stack.pop();
     },
-    "echo": (stack, output) => {
-        output.buf = output.buf + stack.pop() + "\n";
+    "echo": (state, output) => {
+        output.buf = output.buf + state.stack.pop() + "\n";
+    },
+    "head": (state, _) => {
+        let a = state.stack.pop();
+        state.stack.push(a.charAt(0));
+    },
+    "empty": (state, _) => {
+        state.stack.push("");
+    },
+    "conc": (state, _) => {
+        let a = state.stack.pop();
+        let b = state.stack.pop();
+        state.stack.push(a + b);
+    },
+    "if": (state, _) => {
+        let a = state.stack.pop();
+        let b = state.stack.pop();
+        let c = state.stack.pop();
+        if (c) {
+            state.ins.list.unshift(a);
+        } else {
+            state.ins.list.unshift(b);
+        }
+    },
+    "==": (state, _) => {
+        let a = state.stack.pop();
+        let b = state.stack.pop();
+        if (a === b) {
+            state.stack.push(true);
+        } else {
+            state.stack.push(false);
+        }
+    },
+    "pair": (state, _) => {
+        let a = state.stack.pop();
+        let b = state.stack.pop();
+        state.stack.push({fst:a, snd:b});
+    },
+    "fst": (state, _) => {
+        let a = state.stack.pop();
+        state.stack.push(a.fst);
+    },
+    "snd": (state, _) => {
+        let a = state.stack.pop();
+        state.stack.push(a.snd);
     }
 }
+
+const step = (state, output) => {
+    let currIns = state.ins.list.shift();
+    if (currIns === undefined) {
+        state.ins = state.ins.parent;
+        return;
+    }
+    let op = builtin[currIns];
+    if (op) {
+        op(state, output);
+        return;
+    }
+    let fn = scope[currIns];
+    if (fn) {
+        state.ins = {list:fn, parent:state.ins};
+        return;
+    }
+    if (currIns.charAt(0) === "'") {
+        state.stack.push(currIns.slice(1));
+        return;
+    }
+    throw 'reference error'
+}
+
+let procs = [];
+let conns = [];
+let currUser = 0;
+
+const rmProc = (id) => {
+    procs.splice(id, 1);
+    conns.splice(id, 1);
+}
+
+const addProc = (conn, proc) => {
+    procs.push(proc);
+    conns.push(conn);
+}
+
+const timeshare = () => {
+    if (procs.length === 0) return;
+    if (!conns[currUser].connected) {
+        rmProc(currUser);
+        return;
+    }
+    if (procs[currUser].ins === null) {
+        conns[currUser].sendUTF("exit");
+        rmProc(currUser);
+        return;
+    }
+    let output = {buf:""};
+    try {
+        step(procs[currUser], output);
+        if (output.buf !== "") {
+            conns[currUser].sendUTF(output.buf);
+        }
+    } catch (err) {
+        console.log(err);
+        conns[currUser].send(err);
+        rmProc(currUser);
+    }
+    currUser += 1;
+    if (currUser >= procs.length) {
+        currUser = 0;
+    }
+}
+
+/* OLD, DEPRICATED EVAL
 
 const doIns = (stack, ins, output) => {
     let op = builtin[ins];
@@ -78,6 +189,8 @@ const doSeq = (stack, ins, output) => {
     }
 }
 
+*/
+
 /* SERVER */
 
 const WebSocketServer = require('websocket').server;
@@ -98,29 +211,26 @@ wsServer = new WebSocketServer({
 });
 wsServer.on('request', function(request) {
     let connection = request.accept('echo-protocol', request.origin);
-    console.log('connection accepted.');
+    console.log('connection accepted');
 
     connection.on('message', function(message) {
         let ins = message.utf8Data.split(" ");
-        let output = {buf:""};
-        let stack = [];
-
-        loadDefns();
-
-        if (message.type === 'utf8') {
-            console.log('received:' + message.utf8Data);
-            try {
-                doSeq(stack, ins, output);
-                console.log('evaluated:', stack, '\noutput:', output);
-            } catch (err) {
-                output.buf = JSON.stringify(err);
-            }
-            connection.sendUTF(output.buf);
-        }
+        let state = {stack:[], ins:{list:ins, parent:null}};
 
         saveDefns();
+        addProc(connection, state);
     });
+
     connection.on('close', function(reasonCode, description) {
         console.log('peer ' + connection.remoteAddress + ' disconnected');
     });
 });
+
+loadDefns();
+
+const main = () => {
+    timeshare();
+    setImmediate(main);
+}
+
+main();

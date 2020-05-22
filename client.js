@@ -9,6 +9,9 @@ client.on('connectFailed', function(error) {
 
 client.on('connect', function(connection) {
     console.log('wsc connected');
+
+    let doneFlag = true;
+
     connection.on('error', function(error) {
         console.log("connection error: " + error.toString());
     });
@@ -17,9 +20,14 @@ client.on('connect', function(connection) {
     });
     connection.on('message', function(message) {
         if (message.type === "utf8") {
-            console.log(message.utf8Data);
+            if (message.utf8Data === "exit") {
+                doneFlag = true;
+            } else {
+                console.log(message.utf8Data);
+            }
         }
     });
+
     const repl = () => {
         let msg = prompt("sov>");
         if (msg === ":q") {
@@ -28,11 +36,20 @@ client.on('connect', function(connection) {
             while (true) continue;
         }
         connection.send(msg);
-        setTimeout(repl, 10);
+        doneFlag = false;
+        while (!doneFlag) continue;
+        setImmediate(repl);
     }
-    setImmediate(() => {
-        repl();
-    });
+
+    const ping = () => {
+        if (connection.connected) {
+            connection.ping("ping");
+            setTimeout(ping, 1000);
+        }
+    }
+
+    setImmediate(repl);
+    setImmediate(ping);
 });
 
 client.connect("ws://aidan-network.duckdns.org:25565/", "echo-protocol");
