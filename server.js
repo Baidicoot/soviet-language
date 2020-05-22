@@ -64,14 +64,25 @@ const builtin = {
     "chars": (state, _) => {
         let a = state.stack.pop();
         let ls = [];
-        for (let i = 0; i < a.length; i++) {
-            ls.push(a.charAt(i));
+        if (typeof s === "string") {
+            for (let i = 0; i < a.length; i++) {
+                ls.push(a.charAt(i));
+            }
+            state.stack.push(ls);
+        } else {
+            throw 'typeerror'
         }
-        state.stack.push(ls);
     },
     "conc": (state, _) => {
         let a = state.stack.pop();
-        state.stack.push(a.join(""));
+        if (!a) {
+            throw 'undefined'
+        }
+        if (a.join) {
+            state.stack.push(a.join(""));
+        } else {
+            throw 'typeerror'
+        }
     },
     "if": (state, _) => {
         let a = state.stack.pop();
@@ -129,6 +140,9 @@ const builtin = {
     "cons": (state, _) => {
         let obj = cln(state.stack.pop());
         let v = stack.state.pop();
+        if (!obj) {
+            throw 'undefined'
+        }
         if (obj.push) {
             obj.push(v);
             state.stack.push(obj);
@@ -138,6 +152,9 @@ const builtin = {
     },
     "head": (state, _) => {
         let obj = cln(state.stack.pop());
+        if (!obj) {
+            throw 'undefined'
+        }
         if (obj.pop) {
             state.stack.push(obj.pop());
         } else {
@@ -146,6 +163,9 @@ const builtin = {
     },
     "tail": (state, _) => {
         let obj = cln(state.stack.pop());
+        if (!obj) {
+            throw 'undefined'
+        }
         if (obj.pop) {
             obj.pop();
             state.stack.push(obj);
@@ -298,6 +318,15 @@ wsServer.on('request', function(request) {
     connection.on('close', function(reasonCode, description) {
         console.log('peer ' + connection.remoteAddress + ' disconnected');
     });
+
+    const ping = () => {
+        if (connection.connected) {
+            connection.ping("pong");
+            setTimeout(ping, 1000);
+        }
+    }
+
+    setImmediate(ping);
 });
 
 loadDefns();
