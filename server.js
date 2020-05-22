@@ -50,19 +50,24 @@ const builtin = {
         state.stack.pop();
     },
     "echo": (state, output) => {
-        output.buf = output.buf + state.stack.pop() + "\n";
+        let s = state.stack.pop();
+        if (typeof s === "string") {
+            output.buf = output.buf + s;
+        } else {
+            output.buf = output.buf + JSON.stringify(s)
+        }
     },
-    "head": (state, _) => {
+    "chars": (state, _) => {
         let a = state.stack.pop();
-        state.stack.push(a.charAt(0));
-    },
-    "empty": (state, _) => {
-        state.stack.push("");
+        let ls = [];
+        for (let i = 0; i < a.length; i++) {
+            ls.push(a.charAt(i));
+        }
+        state.stack.push(ls);
     },
     "conc": (state, _) => {
         let a = state.stack.pop();
-        let b = state.stack.pop();
-        state.stack.push(a + b);
+        state.stack.push(a.join(""));
     },
     "if": (state, _) => {
         let a = state.stack.pop();
@@ -83,20 +88,70 @@ const builtin = {
             state.stack.push(false);
         }
     },
-    "pair": (state, _) => {
-        let a = state.stack.pop();
-        let b = state.stack.pop();
-        state.stack.push({fst:a, snd:b});
+    "cc": (state, _) => {
+        state.stack.push(cln(state.ins));
     },
-    "fst": (state, _) => {
+    "ld": (state, _) => {
         let a = state.stack.pop();
-        state.stack.push(a.fst);
+        if (typeof a === "object") {
+            state.ins = a;
+        } else {
+            throw 'typeerror'
+        }
     },
-    "snd": (state, _) => {
-        let a = state.stack.pop();
-        state.stack.push(a.snd);
+    "scope": (state, _) => {
+        state.stack.push(cln(scope));
+    },
+    "get": (state, _) => {
+        let obj = state.stack.pop();
+        let prop = stack.state.pop();
+        if (typeof obj === "object") {
+            state.stack.push(obj[prop]);
+        } else {
+            throw 'typeerror'
+        }
+    },
+    "set": (state, _) => {
+        let obj = cln(state.stack.pop());
+        let prop = stack.state.pop();
+        let val = stack.state.pop();
+        if (typeof obj === "object") {
+            obj[prop] = val;
+            state.stack.push(obj);
+        } else {
+            throw 'typeerror'
+        }
+    },
+    "cons": (state, _) => {
+        let obj = cln(state.stack.pop());
+        let v = stack.state.pop();
+        if (obj.push) {
+            obj.push(v);
+            state.stack.push(obj);
+        } else {
+            throw 'typeerror'
+        }
+    },
+    "head": (state, _) => {
+        let obj = cln(state.stack.pop());
+        if (obj.pop) {
+            state.stack.push(obj.pop());
+        } else {
+            throw 'typeerror'
+        }
+    },
+    "tail": (state, _) => {
+        let obj = cln(state.stack.pop());
+        if (obj.pop) {
+            obj.pop();
+            state.stack.push(obj);
+        } else {
+            throw 'typeerror'
+        }
     }
 }
+
+const cln = (obj) => JSON.parse(JSON.stringify(obj));
 
 const step = (state, output) => {
     let currIns = state.ins.list.shift();
@@ -142,7 +197,7 @@ const timeshare = () => {
         rmProc(currUser);
         return;
     }
-    if (procs[currUser].ins === null) {
+    if (!procs[currUser].ins) {
         conns[currUser].send("halt");
         rmProc(currUser);
         return;
