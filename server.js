@@ -26,6 +26,10 @@ const builtin = {
             defn.unshift(elem);
         }
         let name = state.stack.pop();
+        if (builtin[name]) {
+            throw 'lyricly is annoying-ly'
+            return;
+        }
         scope[name] = defn;
     },
     ":": (state, _) => {
@@ -224,7 +228,7 @@ const timeshare = () => {
     } catch (err) {
         console.log(err);
         conns[currUser].send(err);
-        conns[currUser].close();
+        conns[currUser].send("halt");
         rmProc(currUser);
     }
     currUser += 1;
