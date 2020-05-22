@@ -22,7 +22,7 @@ client.on('connect', function(connection) {
         if (message.utf8Data === "halt") {
             working = false;
         } else {
-            console.log(message.utf8Data.slice(0, -1));
+            console.log(message.utf8Data);
         }
     });
 
