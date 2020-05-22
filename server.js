@@ -308,6 +308,8 @@ wsServer.on('request', function(request) {
     console.log('connection accepted');
 
     connection.on('message', function(message) {
+        console.log('received:', message.utf8Data, 'from:', connection.remoteAddress);
+
         let ins = message.utf8Data.split(" ");
         let state = {stack:[], ins:{list:ins, parent:null}};
 
