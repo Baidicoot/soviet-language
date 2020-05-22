@@ -127,6 +127,7 @@ let currUser = 0;
 
 const rmProc = (id) => {
     procs.splice(id, 1);
+    conns[id].close();
     conns.splice(id, 1);
 }
 
@@ -142,7 +143,6 @@ const timeshare = () => {
         return;
     }
     if (procs[currUser].ins === null) {
-        conns[currUser].sendUTF("exit");
         rmProc(currUser);
         return;
     }

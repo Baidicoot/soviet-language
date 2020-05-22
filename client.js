@@ -10,8 +10,6 @@ client.on('connectFailed', function(error) {
 client.on('connect', function(connection) {
     console.log('wsc connected');
 
-    let doneFlag = true;
-
     connection.on('error', function(error) {
         console.log("connection error: " + error.toString());
     });
@@ -20,11 +18,7 @@ client.on('connect', function(connection) {
     });
     connection.on('message', function(message) {
         if (message.type === "utf8") {
-            if (message.utf8Data === "exit") {
-                doneFlag = true;
-            } else {
-                console.log(message.utf8Data);
-            }
+            console.log(message.utf8Data);
         }
     });
 
@@ -36,8 +30,6 @@ client.on('connect', function(connection) {
             while (true) continue;
         }
         connection.send(msg);
-        doneFlag = false;
-        while (!doneFlag) continue;
         setImmediate(repl);
     }
 
