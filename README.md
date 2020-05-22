@@ -31,7 +31,7 @@ The builtin words other than `:` and `;` are:
 - `echo` - echoes the symbol on the top of the stack
 - `head` - takes the first character of the symbol on the top of the stack
 - `empty` - an empty symbol
-- `conc` - concats the top two symbols on the stack
+- `conc` - concats the list on the top of the stack
 - `if` - c a b if: if c, then call a, else call b
 - `==` - checks for equality on the top two symbols on the stack
 - `cc` - current continuation
