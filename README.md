@@ -1,6 +1,6 @@
 # Soviet-Script
 
-The main and default server for soviet-script is ws://aidan-network.duckdns.org:25565
+The main and default server for soviet-script is ws://aidan-network.duckdns.org:25565 - NOW OFFLINE
 
 ## Useage
 ### Running
